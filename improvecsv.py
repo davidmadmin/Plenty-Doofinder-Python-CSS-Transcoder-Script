@@ -124,3 +124,30 @@ df.to_csv(output_pfad, index=False, sep=';', quoting=csv.QUOTE_NONNUMERIC)
 
 print("\n✅ Fertig! Die Datei wurde erfolgreich erstellt:")
 print(output_pfad)
+
+# --- Fehlende Bilder melden ---
+if 'image_link' in df.columns:
+    missing_mask = df['image_link'].isna() | (df['image_link'].astype(str).str.strip() == '')
+
+    group_col = None
+    if 'group_leader' in df.columns:
+        group_col = 'group_leader'
+    elif 'group-leader' in df.columns:
+        group_col = 'group-leader'
+
+    if group_col:
+        group_mask = df[group_col].astype(str).str.strip().isin(['1', 'True', 'true'])
+        missing_mask &= group_mask
+
+    if 'id' in df.columns:
+        missing_ids = df.loc[missing_mask, 'id'].dropna().astype(str).unique().tolist()
+    else:
+        missing_ids = df.index[missing_mask].astype(str).tolist()
+
+    if missing_ids:
+        print(f"\n⚠️ {len(missing_ids)} Hauptvarianten ohne Bild: {', '.join(missing_ids)}")
+        print("Änderungen vornehmen und Export ggf. neu starten.")
+    else:
+        print("\nAlle Hauptvarianten haben ein Bild.")
+else:
+    print("\nℹ️ Keine 'image_link'-Spalte gefunden – Bildprüfung nicht möglich.")
