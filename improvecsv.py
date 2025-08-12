@@ -151,3 +151,24 @@ if 'image_link' in df.columns:
         print("\nAlle Hauptvarianten haben ein Bild.")
 else:
     print("\nℹ️ Keine 'image_link'-Spalte gefunden – Bildprüfung nicht möglich.")
+
+# --- Sekundäre Hover-Bilder zählen ---
+if 'secondary_hover_image_link' in df.columns:
+    hover_mask = df['secondary_hover_image_link'].notna() & (
+        df['secondary_hover_image_link'].astype(str).str.strip() != ''
+    )
+
+    group_col = None
+    if 'group_leader' in df.columns:
+        group_col = 'group_leader'
+    elif 'group-leader' in df.columns:
+        group_col = 'group-leader'
+
+    if group_col:
+        group_mask = df[group_col].astype(str).str.strip().isin(['1', 'True', 'true'])
+        hover_mask &= group_mask
+
+    hover_count = int(hover_mask.sum())
+    print(f"\n{hover_count} Artikel mit Hover Bilder")
+else:
+    print("\nℹ️ Keine 'secondary_hover_image_link'-Spalte gefunden – Hover-Bildprüfung nicht möglich.")
