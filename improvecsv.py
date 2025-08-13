@@ -168,7 +168,15 @@ if 'secondary_hover_image_link' in df.columns:
         group_mask = df[group_col].astype(str).str.strip().isin(['1', 'True', 'true'])
         hover_mask &= group_mask
 
-    hover_count = int(hover_mask.sum())
-    print(f"\n{hover_count} Artikel mit Hover Bilder")
+    if 'id' in df.columns:
+        hover_ids = df.loc[hover_mask, 'id'].dropna().astype(str).unique().tolist()
+    else:
+        hover_ids = df.index[hover_mask].astype(str).tolist()
+
+    hover_count = len(hover_ids)
+    if hover_count:
+        print(f"\n{hover_count} Artikel mit Hover Bilder: {', '.join(hover_ids)}")
+    else:
+        print("\nKeine Artikel mit Hover Bilder.")
 else:
     print("\nℹ️ Keine 'secondary_hover_image_link'-Spalte gefunden – Hover-Bildprüfung nicht möglich.")
