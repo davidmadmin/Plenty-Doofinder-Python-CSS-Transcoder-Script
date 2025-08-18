@@ -114,6 +114,16 @@ if 'eta-zulassung' in df.columns:
     eta_mask = eta_in_description | eta_in_title
     df.loc[eta_mask, 'eta-zulassung'] = 'mit ETA Zulassung'
 
+# --- Material aus Titel ableiten ---
+df['material'] = ''
+if 'title' in df.columns:
+    titles = df['title'].astype(str)
+    df.loc[titles.str.contains('Edelstahl C1', case=False, na=False), 'material'] = 'Edelstahl C1'
+    df.loc[titles.str.contains('Edelstahl A2', case=False, na=False), 'material'] = 'Edelstahl A2'
+    df.loc[titles.str.contains('Edelstahl A4', case=False, na=False), 'material'] = 'Edelstahl A4'
+    df.loc[titles.str.contains('gelb verzinkt', case=False, na=False), 'material'] = 'Stahl gelb verzinkt'
+    df.loc[(df['material'] == '') & titles.str.contains('verzinkt', case=False, na=False), 'material'] = 'Stahl verzinkt'
+
 # --- Output ---
 basename = os.path.basename(csv_pfad)
 basename_ohne_ext = os.path.splitext(basename)[0]
