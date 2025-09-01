@@ -114,6 +114,28 @@ if 'eta-zulassung' in df.columns:
     eta_mask = eta_in_description | eta_in_title
     df.loc[eta_mask, 'eta-zulassung'] = 'mit ETA Zulassung'
 
+# --- Material aus Titel ableiten ---
+df['material'] = ''
+if 'title' in df.columns:
+    titles = df['title'].astype(str)
+    df.loc[titles.str.contains('Edelstahl C1', case=False, na=False), 'material'] = 'Edelstahl C1'
+    df.loc[titles.str.contains('Edelstahl A2', case=False, na=False), 'material'] = 'Edelstahl A2'
+    df.loc[titles.str.contains('Edelstahl A4', case=False, na=False), 'material'] = 'Edelstahl A4'
+    df.loc[titles.str.contains('gelb verzinkt', case=False, na=False), 'material'] = 'Stahl gelb verzinkt'
+    df.loc[(df['material'] == '') & titles.str.contains('verzinkt', case=False, na=False), 'material'] = 'Stahl verzinkt'
+
+# --- Kopfform aus Titel ableiten ---
+df['kopfform'] = ''
+if 'title' in df.columns:
+    titles = df['title'].astype(str)
+    df.loc[titles.str.contains('Tellerkopf', case=False, na=False), 'kopfform'] = 'Tellerkopf'
+    df.loc[titles.str.contains('Senkkopf', case=False, na=False), 'kopfform'] = 'Senkkopf'
+    df.loc[titles.str.contains('Linsenkopf', case=False, na=False), 'kopfform'] = 'Linsenkopf'
+    df.loc[titles.str.contains('Hammerkopf', case=False, na=False), 'kopfform'] = 'Hammerkopf'
+    df.loc[titles.str.contains('ohne Kopf', case=False, na=False), 'kopfform'] = 'ohne Kopf'
+    df.loc[titles.str.contains('Rundkopf', case=False, na=False), 'kopfform'] = 'Rundkopf'
+    df.loc[titles.str.contains('Zylinderkopf', case=False, na=False), 'kopfform'] = 'Zylinderkopf'
+
 # --- Output ---
 basename = os.path.basename(csv_pfad)
 basename_ohne_ext = os.path.splitext(basename)[0]
