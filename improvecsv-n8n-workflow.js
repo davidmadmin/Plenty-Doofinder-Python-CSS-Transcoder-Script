@@ -19,31 +19,109 @@ const CATEGORIES_TO_REMOVE = new Set([
 ].map(norm));
 
 // Parse '["Zubehör","Zubehör;Bits","Top Marken"]' to "Zubehör %% Zubehör > Bits"
+function decodeStringLiteral(text) {
+  try {
+    const escaped = text
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
+    return JSON.parse(`"${escaped}"`);
+  } catch {
+    return text;
+  }
+}
+
+function tryParseCategoryList(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return null;
+
+  const attempts = [trimmed];
+  if (!trimmed.includes('"') && trimmed.includes("'")) {
+    const normalized = trimmed
+      .replace(/\\'/g, '\\u0027')
+      .replace(/'/g, '"');
+    attempts.push(normalized);
+  }
+
+  for (const candidate of attempts) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      /* try next strategy */
+    }
+  }
+
+  const inner = trimmed.slice(1, -1);
+  const parts = [];
+  let current = '';
+  let quote = null;
+  let escape = false;
+
+  for (const ch of inner) {
+    if (escape) {
+      current += ch;
+      escape = false;
+      continue;
+    }
+    if (ch === '\\' && quote) {
+      current += ch;
+      escape = true;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      if (!quote) {
+        quote = ch;
+        continue;
+      }
+      if (quote === ch) {
+        quote = null;
+        continue;
+      }
+    }
+    if (ch === ',' && !quote) {
+      parts.push(current);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  parts.push(current);
+
+  return parts.map(part => {
+    const trimmedPart = part.trim();
+    return trimmedPart ? decodeStringLiteral(trimmedPart) : '';
+  });
+}
+
 function parseCategoryCell(cell) {
   if (cell == null || String(cell).trim() === '') return '';
   let v = String(cell).trim();
 
-  // try JSON list first
-  if (v.startsWith('[') && v.endsWith(']')) {
-    try {
-      // handle doubled quotes from CSV
-      const fixed = v.replace(/\\"/g, '"').replace(/""/g, '"');
-      const arr = JSON.parse(fixed);
-      if (Array.isArray(arr)) {
-        const out = arr
-          .map(x => String(x).trim())
-          .filter(Boolean)
-          .map(entry => entry.includes(';')
-            ? entry.split(';').map(s => s.trim()).filter(Boolean).join(' > ')
-            : entry);
-        return out.join(' %% ');
-      }
-    } catch { /* fall through */ }
+  const parsedList = tryParseCategoryList(v);
+  if (parsedList) {
+    const out = parsedList
+      .map(x => String(x).trim())
+      .filter(Boolean)
+      .map(entry => entry.includes(';')
+        ? entry.split(';').map(s => s.trim()).filter(Boolean).join(' > ')
+        : entry);
+    return out.join(' %% ');
   }
 
-  // fallback: single string with semicolons
-  if (v.includes(';')) return v.split(';').map(s => s.trim()).filter(Boolean).join(' > ');
-  return v;
+  const firstChar = v[0];
+  if ((firstChar === '"' || firstChar === "'") && v.endsWith(firstChar)) {
+    v = v.slice(1, -1);
+  }
+
+  if (v.includes(';')) {
+    return v
+      .split(';')
+      .map(s => decodeStringLiteral(s.trim()))
+      .filter(part => String(part).trim())
+      .join(' > ');
+  }
+
+  return decodeStringLiteral(v);
 }
 
 function cleanDuplicateFlatCategories(catStr) {
